@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2036
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Reciprocals", "Reciprocals\Reciprocals.vcxproj", "{F4883931-D687-4CA3-A1D7-97B10B7C1562}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F4883931-D687-4CA3-A1D7-97B10B7C1562}.Debug|x64.ActiveCfg = Debug|x64
+		{F4883931-D687-4CA3-A1D7-97B10B7C1562}.Debug|x64.Build.0 = Debug|x64
+		{F4883931-D687-4CA3-A1D7-97B10B7C1562}.Release|x64.ActiveCfg = Release|x64
+		{F4883931-D687-4CA3-A1D7-97B10B7C1562}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {760F2076-E3C9-41EF-B78E-C4054A1F81FD}
+	EndGlobalSection
+EndGlobal
