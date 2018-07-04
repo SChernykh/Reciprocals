@@ -11,9 +11,9 @@
 #include <intrin.h>
 
 // 31st bit is always 1 (divisor is shifted left until this bit becomes 1)
-// index1: bits 30-23, unsigned, range=[0,255]
-// index2: bits 22-0, signed, range=[-4194304,4194303]
-constexpr uint32_t INDEX1_BITS = 8;
+// index1: bits 30-24, unsigned, range=[0,127]
+// index2: bits 23-0, signed, range=[-8388608,8388607]
+constexpr uint32_t INDEX1_BITS = 7;
 constexpr uint32_t INDEX2_BITS = 31 - INDEX1_BITS;
 
 // 1 ULP = 2^-64
@@ -115,15 +115,15 @@ void cubic_approximation_init()
 			double exact_r_fract = static_cast<double>(rem) / a;
 
 			const int32_t index2 = static_cast<int32_t>(a & ((1UL << INDEX2_BITS) - 1)) - (1 << (INDEX2_BITS - 1));
-			const int64_t r0 = int64_t(reciprocals[i].C0 | (1LL << C0_BITS)) << 23;
-			const int64_t r1 = int64_t(reciprocals[i].C1) << 13;
-			const int64_t r2 = int64_t(reciprocals[i].C2) << 20;
+			const int64_t r0 = int64_t(reciprocals[i].C0 | (1LL << C0_BITS)) << 22;
+			const int64_t r1 = int64_t(reciprocals[i].C1) << 12;
+			const int64_t r2 = (int64_t(reciprocals[i].C2) << 19) + (reciprocals[i].C2 << 3);
 			const int32_t r3 = reciprocals[i].C3;
 
 #if 0
 			double r = -r3;
 
-			r *= (index2 >> 3);
+			r *= (index2 >> 4);
 			if (fabs(r) >= 2147483648.0) __debugbreak();
 
 			r = (r + r2) * index2;
@@ -136,13 +136,13 @@ void cubic_approximation_init()
 
 			r = r + r0;
 			if (fabs(r) >= 9223372036854775808.0) __debugbreak();
-			r /= static_cast<double>(1LL << 28);
+			r /= static_cast<double>(1LL << 27);
 #else
 			int64_t r;
-			r = static_cast<int32_t>(-r3 * (index2 >> 3)); // 32x32 -> 32 bit mul
+			r = static_cast<int32_t>(-r3 * (index2 >> 4)); // 32x32 -> 32 bit mul
 			r = ((r + r2) * index2) >> 31; // 64x32 -> 64 bit mul
 			r = ((r - r1) * index2) >> 10; // 64x32 -> 64 bit mul
-			r = (r + r0) >> 28;
+			r = (r + r0) >> 27;
 #endif
 
 			const double err = r - exact_r - exact_r_fract;
@@ -196,17 +196,17 @@ void cubic_approximation_check()
 		const uint32_t a1 = a << shift;
 
 		const uint32_t index1 = ((a1 << 1) >> (INDEX2_BITS + 1));
-		const int32_t index2 = (a1 & ((1UL << INDEX2_BITS) - 1)) - (1 << (INDEX2_BITS - 1));
-		const int64_t r0 = int64_t(reciprocals[index1].C0 | (1LL << C0_BITS)) << 23;
-		const int64_t r1 = int64_t(reciprocals[index1].C1) << 13;
-		const int64_t r2 = int64_t(reciprocals[index1].C2) << 20;
+		const int32_t index2 = static_cast<int32_t>(a1 & ((1UL << INDEX2_BITS) - 1)) - (1 << (INDEX2_BITS - 1));
+		const int64_t r0 = int64_t(reciprocals[index1].C0 | (1LL << C0_BITS)) << 22;
+		const int64_t r1 = int64_t(reciprocals[index1].C1) << 12;
+		const int64_t r2 = (int64_t(reciprocals[index1].C2) << 19) + (reciprocals[index1].C2 << 3);
 		const int32_t r3 = reciprocals[index1].C3;
 
 		int64_t rr;
-		rr = static_cast<int32_t>(-r3 * (index2 >> 3)); // 32x32 -> 32 bit mul
+		rr = static_cast<int32_t>(-r3 * (index2 >> 4)); // 32x32 -> 32 bit mul
 		rr = ((rr + r2) * index2) >> 31; // 64x32 -> 64 bit mul
 		rr = ((rr - r1) * index2) >> 10; // 64x32 -> 64 bit mul
-		uint64_t r = static_cast<uint64_t>((rr + r0) >> 28) << shift;
+		uint64_t r = static_cast<uint64_t>((rr + r0) >> 27) << shift;
 
 		for (int i = 0; i <= MAX_NEWTON_RAPHSON_ITER; ++i)
 		{
@@ -274,7 +274,7 @@ void check_generated_code()
 	uint64_t min_err_divisor = 0;
 	uint64_t max_err_divisor = 0;
 	uint64_t prev_index = 0;
-	for (uint32_t a = 0xFFFFFFFFUL; a >= DIVISOR_OR_MASK; a -= 2)
+	for (uint32_t a = 0xFFFFFFFFUL; a >= DIVISOR_OR_MASK; --a)
 	{
 		if ((a >> 20) != prev_index)
 		{
@@ -454,15 +454,15 @@ int main()
 	f << "	const uint32_t index1 = (a << 1) >> " << (INDEX2_BITS + 1) << ";\n";
 	f << "	const int32_t index2 = (a & " << ((1UL << INDEX2_BITS) - 1) << ") - " << (1 << (INDEX2_BITS - 1)) << ";\n";
 	f << "#endif\n\n";
-	f << "	const int64_t r0 = int64_t(RCP[index1].C0 | (1LL << " << C0_BITS << ")) << 23;\n";
-	f << "	const int64_t r1 = int64_t(RCP[index1].C1) << 13;\n";
-	f << "	const int64_t r2 = int64_t(RCP[index1].C2) << 20;\n";
+	f << "	const int64_t r0 = int64_t(RCP[index1].C0 | (1LL << " << C0_BITS << ")) << 22;\n";
+	f << "	const int64_t r1 = int64_t(RCP[index1].C1) << 12;\n";
+	f << "	const int64_t r2 = (int64_t(RCP[index1].C2) << 19) + (RCP[index1].C2 << 3);\n";
 	f << "	const int32_t r3 = RCP[index1].C3;\n\n";
 	f << "	int64_t rr;\n";
-	f << "	rr = static_cast<int32_t>(-r3 * (index2 >> 3));\n";
+	f << "	rr = static_cast<int32_t>(-r3 * (index2 >> 4));\n";
 	f << "	rr = ((rr + r2) * index2) >> 31;\n";
 	f << "	rr = ((rr - r1) * index2) >> 10;\n";
-	f << "	uint64_t r = static_cast<uint64_t>((rr + r0) >> 28);\n\n";
+	f << "	uint64_t r = static_cast<uint64_t>((rr + r0) >> 27);\n\n";
 	f << "#if SMALL_DIVISORS_ENABLED\n";
 	f << "	r <<= shift;\n";
 	f << "	if (a <= " << smallest_divisor[0] << ")\n";
