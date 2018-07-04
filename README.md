@@ -4,7 +4,7 @@ Trying to perform 64:32 bit division faster than native x64 DIV instruction.
 
 Current approach:
 - Get initial approximation of the reciprocal from LUT table
-- If divisor is less than 2^31, do one Newton-Raphson iterations to get reciprocal with full 64-bit precision
+- If divisor is less than 2^31, do one Newton-Raphson iteration to get reciprocal with full 64-bit precision
 - Multiply by reciprocal
 - Correct the result
 
@@ -13,3 +13,5 @@ LUT table stores piecewise cubic polynomial approximation of 1/x. For each inter
 - C1 has 27 bits
 - C2 has 20 bits
 - C3 has 12 bits
+
+Additional tweak is applied to C2 to improve approximation's precision: it's multiplied by 65537/65536. Without this tweak precision wouldn't be good enough to use small 1.5 KB table.
